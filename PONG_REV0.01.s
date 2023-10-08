@@ -37,7 +37,6 @@ END_INIT_VGA:
 
 
 GAMELOOP: /*MAIN GAME LOOP*/
- call DRAW
  ldhio r19,(r18) /*check is button is pressed by value loaded into r19*/
  beq r0,r19, INIT_VGA /* IF BUTTON NOT PRESSED PAINT VGA BLACK*/
  movui r4,0xffff /*White Pixel*/
@@ -45,4 +44,29 @@ GAMELOOP: /*MAIN GAME LOOP*/
  jmpi GAMELOOP
 	
 DRAW: /*Not implemented*/
+ call DRAW_SCORE
+ call DRAW_BOUNDARY
+ call DRAW_PLAYER1
+ call DRAW_PLAYER2
+ call DRAW_BALL
+ ret
+ 
+DRAW_SCORE:
+ movui r4,0xffff 
+ ret
+
+DRAW_PLAYER1:
+ movui r4,0xffff 
+ ret
+
+DRAW_PLAYER2:
+ movui r4,0xffff 
+ ret
+
+DRAW_BALL:
+ movui r4,0xffff 
+ ret
+ 
+DRAW_BOUNDARY:
+ movui r4,0xffff 
  ret
