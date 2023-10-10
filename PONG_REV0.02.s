@@ -58,7 +58,7 @@ GAMELOOP: /*MAIN GAME LOOP*/
  call DRAW
  movui r4,0x0000
  ldhio r19,(r18) /*check is button is pressed by value loaded into r19*/
- beq r0,r19, PAINT_FULL_VGA /* IF BUTTON NOT PRESSED PAINT VGA BLACK*/
+ #eq r0,r19, PAINT_FULL_VGA /* IF BUTTON NOT PRESSED PAINT VGA BLACK*/
  
  movui r4,0xffff /*White Pixel*/
  bne r0,r19 ,PAINT_FULL_VGA /* IF BUTTON IS PRESSED PAINT VGA WHITE*/
@@ -75,7 +75,7 @@ DRAW: /*Not implemented*/
  mov r12,r0
  mov r13,r0
  call DRAW_PLAYER1
- #call DRAW_PLAYER2
+ call DRAW_PLAYER2
  #call DRAW_BALL
  ldw ra,(sp)
  addi sp,sp,4
@@ -95,19 +95,19 @@ DRAW_PLAYER1:
  stw r12,16(sp)
  stw r13,20(sp)
  
- movia r2,0x08004b3c /*Chosen test spot to start*/
+ movia r2,0x08004840 /*Chosen test spot to start PLayer 1*/
  mov r10,r0
  mov r11,r0
- movia r12,15 /*Player Pixel Width */
- movia r13,40 /*Player Pixel Height */
+ movia r12,4  /*Player Pixel Width */
+ movia r13,30 /*Player Pixel Height */
  D_P1_ROW:
- 	beq r10,r12, D_P_NEXTROW
+ 	beq r10,r12, D_P1_NEXTROW
  	sthio r4,(r2)
  	addi r2,r2,2
  	addi r10,r10,1
  	br D_P1_ROW
- D_P_NEXTROW:
- 	addi r2,r2, 0x260
+ D_P1_NEXTROW:
+ 	addi r2,r2, 1016
 	mov r10,r0
 	addi r11,r11,1
 	bne r11,r13,D_P1_ROW
@@ -123,8 +123,41 @@ DRAW_PLAYER1:
  	ret
 
 DRAW_PLAYER2:
- movui r4,0xffff 
- ret
+ movui r4,0xf0ff
+ subi sp,sp,24
+ stw ra,(sp)
+ stw r2,4(sp)
+ stw r10,8(sp)
+ stw r11,12(sp)
+ stw r12,16(sp)
+ stw r13,20(sp)
+ 
+ movia r2,0x08004A40 /*Chosen test spot to start PLayer 2*/
+ mov r10,r0
+ mov r11,r0
+ movia r12,4  /*Player Pixel Width */
+ movia r13,30 /*Player Pixel Height */
+ D_P2_ROW:
+ 	beq r10,r12, D_P2_NEXTROW
+ 	sthio r4,(r2)
+ 	addi r2,r2,2
+ 	addi r10,r10,1
+ 	br D_P2_ROW
+ D_P2_NEXTROW:
+ 	addi r2,r2, 1016
+	mov r10,r0
+	addi r11,r11,1
+	bne r11,r13,D_P2_ROW
+	br DONE_P2
+ DONE_P2:
+ 	ldw ra,(sp)
+ 	ldw r2,4(sp)
+ 	ldw r10,8(sp)
+	ldw r11,12(sp)
+	ldw r12,16(sp)
+	ldw r13,20(sp)
+	addi sp,sp,24
+ 	ret
 
 DRAW_BALL:
  movui r4,0xffff 
