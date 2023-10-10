@@ -1,19 +1,23 @@
 .equ PIXEL_BUFFER_START, 0x08000000
-.equ PIXEL_BUFFER_END, 0x08080000
+.equ PIXEL_BUFFER_END, 0x0803BE80
 .equ CHAR_BUFFER, 0x09000000
 .equ SWITCH_BUFFER, 0x10000040
 
-.equ VGA_ROW_WIDTH, 0x27E /*HEX WIDTH OF BYTES USED FOR ONE FULL ROW OF PIXELS*/
-.equ VGA_HALF_ROW_WIDTH, 0x13F /*HEX HALF WIDTH OF BYTES USED FOR ONE HALF ROW OF PIXELS*/
+.equ VGA_ROW_WIDTH, 0x280 /*HEX WIDTH OF BYTES USED FOR ONE FULL ROW OF PIXELS*/
+.equ VGA_HALF_ROW_WIDTH, 0x140 /*HEX HALF WIDTH OF BYTES USED FOR ONE HALF ROW OF PIXELS*/
+
+.equ P1_DEFAULT_START_POS, 0x08004840
+.equ P2_DEFAULT_START_POS, 0x08004A40
 
 .global _start
 _start:
 
-INIT:				/*EVERYTHING THAT ONLY RUNS ON STARTUP HERE*/
+INIT:			   /*EVERYTHING THAT ONLY RUNS ON STARTUP HERE*/
  movia sp, 0x10000 /*INIT Stack pointer at reasonable address */
- mov r2,r0
+				   /*CLEAR ALL REGISTERS ON A FRESH BOOT/START */
+ mov r2,r0 #r2 will be used for 
  mov r3,r0
- mov r4,r0			/*CLEAR ALL REGISTERS ON A FRESH BOOT/START */
+ mov r4,r0			
  mov r5,r0
  mov r6,r0
  mov r7,r0
@@ -35,8 +39,8 @@ INIT:				/*EVERYTHING THAT ONLY RUNS ON STARTUP HERE*/
  mov r23,r0
 									
  movia r2,PIXEL_BUFFER_START		
- movia r3,CHAR_BUFFER
- movia r6,PIXEL_BUFFER_END
+ movia r3,PIXEL_BUFFER_END
+ 
  movia r18,SWITCH_BUFFER
  
 
@@ -44,7 +48,7 @@ INIT:				/*EVERYTHING THAT ONLY RUNS ON STARTUP HERE*/
  movui r4,0x0000 /*Black Pixel MOVED HERE FOR TEST*/
  
 PAINT_FULL_VGA:
- beq r2,r6,END_PAINT_FULL_VGA
+ beq r2,r3,END_PAINT_FULL_VGA
  sthio r4,(r2)
  addi r2,r2,2
  br PAINT_FULL_VGA
@@ -58,17 +62,19 @@ GAMELOOP: /*MAIN GAME LOOP*/
  call DRAW
  movui r4,0x0000
  ldhio r19,(r18) /*check is button is pressed by value loaded into r19*/
- #eq r0,r19, PAINT_FULL_VGA /* IF BUTTON NOT PRESSED PAINT VGA BLACK*/
+ #beq r0,r19, PAINT_FULL_VGA /* IF BUTTON NOT PRESSED PAINT VGA BLACK*/
  
  movui r4,0xffff /*White Pixel*/
  bne r0,r19 ,PAINT_FULL_VGA /* IF BUTTON IS PRESSED PAINT VGA WHITE*/
  jmpi GAMELOOP
 	
-DRAW: /*Not implemented*/
- #call DRAW_SCORE
- #call DRAW_BOUNDARY
+DRAW: 
  subi sp,sp,4
  stw ra,(sp)
+ 
+ #call DRAW_SCORE
+ #call DRAW_BOUNDARY
+
  movia r2,PIXEL_BUFFER_START
  mov r10,r0
  mov r11,r0
@@ -95,7 +101,7 @@ DRAW_PLAYER1:
  stw r12,16(sp)
  stw r13,20(sp)
  
- movia r2,0x08004840 /*Chosen test spot to start PLayer 1*/
+ movia r2,P1_DEFAULT_START_POS /*Chosen test spot to start PLayer 1*/
  mov r10,r0
  mov r11,r0
  movia r12,4  /*Player Pixel Width */
@@ -132,7 +138,7 @@ DRAW_PLAYER2:
  stw r12,16(sp)
  stw r13,20(sp)
  
- movia r2,0x08004A40 /*Chosen test spot to start PLayer 2*/
+ movia r2,P2_DEFAULT_START_POS /*Chosen test spot to start PLayer 2*/
  mov r10,r0
  mov r11,r0
  movia r12,4  /*Player Pixel Width */
@@ -165,4 +171,19 @@ DRAW_BALL:
  
 DRAW_BOUNDARY:
  movui r4,0xffff 
+ subi sp,sp,4
+ stw ra,(sp)
+ #LOGIC HERE
+ ldw ra,(sp)
  ret
+ 
+ .data 
+	Payer1:
+		.skip 4 /* P1 X POS */
+		.skip 4 /* P1 Y POS */
+	Player2:
+		.skip 4 /* P1 X POS */
+		.skip 4 /* P1 Y POS */
+	Score:
+		.skip 4 /* P1 Score */
+		.skip 4 /* P2 Score */
