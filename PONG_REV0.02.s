@@ -3,8 +3,8 @@
 .equ CHAR_BUFFER, 0x09000000
 .equ SWITCH_BUFFER, 0x10000040
 
-.equ VGA_ROW_VIS_WIDTH, 0x280 /*HEX WIDTH OF BYTES USED FOR ONE FULL ROW OF PIXELS*/
-.equ VGA_HALF_ROW_VIS_WIDTH, 0x140 /*HEX HALF WIDTH OF BYTES USED FOR ONE HALF ROW OF PIXELS*/
+.equ VGA_ROW_VIS_WIDTH, 0x280 /*HEX WIDTH OF BYTES USED FOR ONE FULL ROW OF PIXELS that are visible on screen*/
+.equ VGA_HALF_ROW_VIS_WIDTH, 0x140 /*HEX HALF WIDTH OF BYTES USED FOR ONE HALF ROW OF PIXELS that are visible on screen*/
 
 .equ VGA_SIZE_NEXT_ROW, 0x400
 
@@ -14,91 +14,93 @@
 .global _start
 _start:
 
-INIT:			   /*EVERYTHING THAT ONLY RUNS ON STARTUP HERE*/
- movia sp, 0x10000 /*INIT Stack pointer at reasonable address */
+INIT:			   		/*EVERYTHING THAT ONLY RUNS ON STARTUP HERE*/
+ 	movia sp, 0x10000 	/*INIT Stack pointer at reasonable address */
  
-				   /*CLEAR ALL REGISTERS ON A FRESH BOOT/START */
- mov r2,r0  #r2 will be used for 
- mov r3,r0
- mov r4,r0			
- mov r5,r0
- mov r6,r0
- mov r7,r0
- mov r8,r0
- mov r9,r0
- mov r10,r0
- mov r11,r0
- mov r12,r0
- mov r13,r0
- mov r14,r0
- mov r15,r0
- mov r16,r0
- mov r17,r0
- mov r18,r0
- mov r19,r0
- mov r20,r0
- mov r21,r0
- mov r22,r0
- mov r23,r0
+				   		/*CLEAR ALL REGISTERS ON A FRESH BOOT/START */
+ 	mov r2,r0  			#r2 mainly used for Mem Addresses in the VGA space 
+ 	mov r3,r0  			#r3 mainly used for Mem Addresses in the VGA space
+ 	mov r4,r0			
+ 	mov r5,r0
+ 	mov r6,r0
+ 	mov r7,r0
+ 	mov r8,r0
+ 	mov r9,r0
+ 	mov r10,r0
+ 	mov r11,r0
+ 	mov r12,r0
+ 	mov r13,r0
+ 	mov r14,r0
+ 	mov r15,r0
+ 	mov r16,r0
+ 	mov r17,r0
+ 	mov r18,r0
+ 	mov r19,r0
+ 	mov r20,r0
+ 	mov r21,r0
+ 	mov r22,r0
+ 	mov r23,r0
 									
- movia r2,PIXEL_BUFFER_START		
- movia r3,PIXEL_BUFFER_END
- movui r4,0x0000 /*Black Pixel MOVED HERE FOR TEST*/
- movia r5,SWITCH_BUFFER
+ 	movia r2,PIXEL_BUFFER_START		
+ 	movia r3,PIXEL_BUFFER_END
+ 	movui r4,0x0000 				/*Black Pixel MOVED HERE FOR TEST*/
+ 	movia r5,SWITCH_BUFFER 			/*init r5 to start of switch buffer location*/
  
  
 PAINT_FULL_VGA:
- beq r2,r3,END_PAINT_FULL_VGA
- sthio r4,(r2)
- addi r2,r2,2
- br PAINT_FULL_VGA
+ 	beq r2,r3,END_PAINT_FULL_VGA
+ 	sthio r4,(r2)
+ 	addi r2,r2,2
+ 	br PAINT_FULL_VGA
 END_PAINT_FULL_VGA:
- movia r2,PIXEL_BUFFER_START
- mov r4,r0
- br GAMELOOP
+ 	movia r2,PIXEL_BUFFER_START
+ 	mov r4,r0
+ 	br GAMELOOP
 
 ##############################################################################
-GAMELOOP: /*MAIN GAME LOOP*/
- ldhio r19,(r5) /*check is button is pressed by value loaded into r19*/
- call DRAW
- jmpi GAMELOOP
+GAMELOOP: 							/*MAIN GAME LOOP*/
+ 	ldhio r19,(r5) 					/*check is button is pressed by value loaded into r19*/
+ 	call DRAW						/*Call the draw subroutine*/
+ 	jmpi GAMELOOP					/*Jump back to label GAMELOOP infinitly*/
 ##############################################################################	
-DRAW: 
- subi sp,sp,4
- stw ra,(sp)
- 
- mov r10,r0
- mov r11,r0
- mov r12,r0
- mov r13,r0
- 
- movia r2,((PIXEL_BUFFER_START+VGA_HALF_ROW_VIS_WIDTH)-0x06)
- call DRAW_BOUNDARY
+DRAW: 															/*Drawing Subroutine to handle all drawing logic*/
+ 	subi sp,sp,4 														/*Reserve 4 bytes on the stack*/
+ 	stw ra,(sp) 														/*Store the current return Address on the stack*/
 
- movia r2,PIXEL_BUFFER_START
- call DRAW_PLAYER1
- call DRAW_PLAYER2
- #call DRAW_BALL
- #call DRAW_SCORE
- ldw ra,(sp)
- addi sp,sp,4
- ret
+ 	mov r10,r0  														/*Ensure some registers are zerod for use in Drawing functions*/
+ 	mov r11,r0
+ 	mov r12,r0
+ 	mov r13,r0
+ 
+ 	movia r2,((PIXEL_BUFFER_START+VGA_HALF_ROW_VIS_WIDTH)-0x06) 		/*Move address into r2 where we want to start drawing*/
+ 	call DRAW_BOUNDARY  												/*Call subroutine DRAW_BOUNDARY*/
+
+ 	movia r2,P1_DEFAULT_START_POS 										/*Move address into r2 the chosen test spot to start Player 1*/ 
+ 	call DRAW_PLAYER1
+ 
+ 	movia r2,P2_DEFAULT_START_POS 										/*Move address into r2 the chosen test spot to start Player 2*/
+ 	call DRAW_PLAYER2
+ 
+ 	#call DRAW_BALL
+ 	#call DRAW_SCORE
+ 
+ 	ldw ra,(sp) 		 												/*Restore return address to return to GAMELOOP*/
+ 	addi sp,sp,4		 												/*Update Stack Pointer*/
+ 	ret
 ##############################################################################
 DRAW_SCORE:
- movui r4,0xffff 
- ret
+ 	movui r4,0xffff 
+ 	ret
 ##############################################################################
 DRAW_PLAYER1:
- movui r4,0xff00
- subi sp,sp,8
- stw ra,(sp)
- stw r2,4(sp)
+ 	movui r4,0xff00
+ 	subi sp,sp,4
+ 	stw ra,(sp)
  
- movia r2,P1_DEFAULT_START_POS /*Chosen test spot to start PLayer 1*/
- mov r10,r0
- mov r11,r0
- movia r12,4  /*Player Pixel Width */
- movia r13,30 /*Player Pixel Height */
+ 	mov r10,r0
+ 	mov r11,r0
+ 	movia r12,4  /*Player Pixel Draw Width */
+ 	movia r13,30 /*Player Pixel Draw Height */
  
  D_P1_ROW:
  	beq r10,r12, D_P1_NEXTROW
@@ -120,22 +122,18 @@ DRAW_PLAYER1:
 	mov r12,r0
  	mov r13,r0
  	ldw ra,(sp)
- 	ldw r2,4(sp)
-	addi sp,sp,8
+	addi sp,sp,4
  	ret
 #########################################################################################
 DRAW_PLAYER2:
- movui r4,0xf0ff
- subi sp,sp,8
- stw ra,(sp)
- stw r2,4(sp)
+ 	movui r4,0xf0ff
+ 	subi sp,sp,4
+ 	stw ra,(sp)
 
- 
- movia r2,P2_DEFAULT_START_POS /*Chosen test spot to start PLayer 2*/
- mov r10,r0
- mov r11,r0
- movia r12,4  /*Player Pixel Width */
- movia r13,30 /*Player Pixel Height */
+ 	mov r10,r0
+ 	mov r11,r0
+ 	movia r12,4  /*Player Pixel Draw Width */
+ 	movia r13,30 /*Player Pixel Draw Height */
  
  D_P2_ROW:
  	beq r10,r12, D_P2_NEXTROW
@@ -157,51 +155,50 @@ DRAW_PLAYER2:
 	mov r12,r0
  	mov r13,r0
  	ldw ra,(sp)
- 	ldw r2,4(sp)
-	addi sp,sp,8
+	addi sp,sp,4
  	ret
 #######################################################################################
 DRAW_BALL:
- movui r4,0xffff 
- ret
+ 	movui r4,0xffff 
+ 	ret
 #######################################################################################
 DRAW_BOUNDARY:
- movui r4,0xffff /*White Pixel*/
- subi sp,sp,4 /*Allocate Space for Stack Pointer*/
- stw ra,(sp)  /*Store Return Address on Stack */
+ 	movui r4,0xffff 		/*White Pixel*/
+ 	subi sp,sp,4 			/*Allocate Space for Stack Pointer*/
+ 	stw ra,(sp)  			/*Store Return Address on Stack */
  
- movia r3, ((PIXEL_BUFFER_START+VGA_HALF_ROW_VIS_WIDTH)+0x06) /*Choose Right Spot to start Drawing*/
- mov r10,r0 /* Clear r10 */
- mov r13,r0 /* Clear r13 */
- movia r11,5 /*Height of Each Square*/
- movia r12,19 /*Total Squares in Middle Bound*/
+ 	movia r3, ((PIXEL_BUFFER_START+VGA_HALF_ROW_VIS_WIDTH)+0x06) /*Choose Right Spot to start Drawing*/
+ 	mov r10,r0 			/* Clear r10 */
+ 	mov r13,r0 			/* Clear r13 */
+ 	movia r11,5 		/*Height of Each Square*/
+	movia r12,19 		/*Total Squares in Middle Bound*/
  
  DRAW_SQUARE:
-  beq r2,r3, NEXT_DRAW_ROW /*Branch when Current pixel = end mem address of where we wont to stop drawing*/
-  sthio r4,(r2)
-  addi r2,r2,2
-  br DRAW_SQUARE
+  	beq r2,r3, NEXT_DRAW_ROW 	/*Branch when Current pixel = end mem address of where we want to stop drawing*/
+  	sthio r4,(r2)
+  	addi r2,r2,2
+  	br DRAW_SQUARE
   
  NEXT_DRAW_ROW:
-  addi r2,r2, (VGA_SIZE_NEXT_ROW-0xC)
-  addi r3,r3, VGA_SIZE_NEXT_ROW
-  addi r10,r10,1
-  bne r10,r11,DRAW_SQUARE
-  mov r10,r0 /* Clear r10 */
-  addi r13,r13,1
-  addi r2,r2,0x2000 /*Move Pointer for Current Pixel down 10 rows */
-  addi r3,r3,0x2000 /*Move Mem Address for last Row Pixel down 10 rows */
-  bne r12,r13,DRAW_SQUARE
-  br BOUND_DONE
+  	addi r2,r2, (VGA_SIZE_NEXT_ROW-0xC)
+  	addi r3,r3, VGA_SIZE_NEXT_ROW
+  	addi r10,r10,1
+  	bne r10,r11,DRAW_SQUARE
+  	mov r10,r0 				/* Clear r10 */
+  	addi r13,r13,1
+  	addi r2,r2,0x2000 		/*Move Pointer for Current Pixel down 10 rows */
+  	addi r3,r3,0x2000 		/*Move Mem Address for last Row Pixel down 10 rows */
+  	bne r12,r13,DRAW_SQUARE
+ 	br BOUND_DONE
   
 BOUND_DONE: 
- mov r10,r0 /*Restore Used Registers*/
- mov r11,r0
- mov r12,r0
- mov r13,r0
- ldw ra,(sp) /*Restore Return Adress*/
- addi sp,sp,4
- ret
+ 	mov r10,r0 		/*Restore Used Registers*/
+ 	mov r11,r0
+ 	mov r12,r0
+ 	mov r13,r0
+ 	ldw ra,(sp) 		/*Restore Return Adress*/
+ 	addi sp,sp,4
+ 	ret
 ####################################################################################
  .data 
 	Payer1:
