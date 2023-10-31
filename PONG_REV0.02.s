@@ -236,13 +236,32 @@ CHECK_P2_DOWN:
 	br END_INPUT
 	
 MOVE_P1_UP:
+	movia r3,Player1
+	ldw r2,(r3)
+	subi r2,r2,(VGA_SIZE_NEXT_ROW * 1)
+	stw r2,(r3)
+	stw r2,4(r3)
 	br CHECK_P1_DOWN
 MOVE_P1_DOWN:
+	movia r3,Player1
+	ldw r2,(r3)
+	addi r2,r2,(VGA_SIZE_NEXT_ROW * 1)
+	stw r2,(r3)	
+	stw r2,4(r3)
 	br CHECK_P2_UP
 MOVE_P2_UP:
+	movia r3,Player2
+	ldw r2,(r3)
+	subi r2,r2,(VGA_SIZE_NEXT_ROW * 1)
+	stw r2,4(r3)
+	stw r2,(r3)	
 	br CHECK_P2_DOWN
 MOVE_P2_DOWN:
-
+	movia r3,Player2
+	ldw r2,(r3)
+	addi r2,r2,(VGA_SIZE_NEXT_ROW * 1)
+	stw r2,(r3)
+	stw r2,4(r3)
 END_INPUT:
 	mov r18,r0
 	mov r19,r0
