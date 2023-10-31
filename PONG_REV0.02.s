@@ -99,29 +99,29 @@ DRAW: 															/*Drawing Subroutine to handle all drawing logic*/
  	addi sp,sp,4		 												/*Update Stack Pointer*/
  	ret
 ##############################################################################
-DRAW_SCORE:
+DRAW_SCORE: /*Not implemented*/
  	movui r4,0xffff 
  	ret
 ##############################################################################
 DRAW_PLAYER1:
- 	movui r4,0xff00
- 	subi sp,sp,4
+ 	movui r4,0xff00  /*Move pixel value into r4*/
+ 	subi sp,sp,4   /*Set up stack*/
  	stw ra,(sp)
  
- 	mov r10,r0
+ 	mov r10,r0  /*Clear r10 and r11 for loop use*/
  	mov r11,r0
  	movia r12,4  /*Player Pixel Draw Width */
  	movia r13,30 /*Player Pixel Draw Height */
  
  D_P1_ROW:
- 	beq r10,r12, D_P1_NEXTROW
- 	sthio r4,(r2)
- 	addi r2,r2,2
- 	addi r10,r10,1
+ 	beq r10,r12, D_P1_NEXTROW /*loop control to move to next row*/
+ 	sthio r4,(r2) /*store pixel color value into pixel memory region */
+ 	addi r2,r2,2 /*move two bytes over on current memory address*/
+ 	addi r10,r10,1 
  	br D_P1_ROW
 	
  D_P1_NEXTROW:
- 	addi r2,r2, 1016
+ 	addi r2,r2, 1016 /*add the offset in memory to start drawing on next row */
 	mov r10,r0
 	addi r11,r11,1
 	bne r11,r13,D_P1_ROW
@@ -169,7 +169,7 @@ DRAW_PLAYER2:
 	addi sp,sp,4
  	ret
 #######################################################################################
-DRAW_BALL:
+DRAW_BALL: /*Not implemented*/
  	movui r4,0xffff 
  	ret
 #######################################################################################
@@ -215,20 +215,23 @@ GET_INPUT:
  	subi sp,sp,8 			/*Allocate Space for Stack Pointer*/
  	stw ra,(sp)
 	stw r17,4(sp)
+	ldhio r17,(r5) 	/*check is button is pressed by value loaded into r19*/
 	
-	ldhio r17,(r5) 					/*check is button is pressed by value loaded into r19*/
 CHECK_P1_UP:	
 	movia r18, 0x0001
 	and r19,r18,r17
 	beq r18,r19,MOVE_P1_UP
+	
 CHECK_P1_DOWN:	
 	movia r18, 0x0010
 	and r20,r18,r17
 	beq r18,r20,MOVE_P1_DOWN
+	
 CHECK_P2_UP:	
 	movia r18, 0x0100
 	and r21,r18,r17
 	beq r18,r21,MOVE_P2_UP
+	
 CHECK_P2_DOWN:		
 	movia r18, 0x1000
 	and r22,r18,r17
@@ -239,30 +242,43 @@ MOVE_P1_UP:
 	movia r3,Player1
 	ldw r2,(r3)
 	subi r2,r2,(VGA_SIZE_NEXT_ROW * 1)
+	movia r7,PIXEL_BUFFER_START
+	blt r2,r7,MOVE_P1_DOWN
 	stw r2,(r3)
 	stw r2,4(r3)
 	br CHECK_P1_DOWN
+	
 MOVE_P1_DOWN:
 	movia r3,Player1
 	ldw r2,(r3)
 	addi r2,r2,(VGA_SIZE_NEXT_ROW * 1)
+	movia r7,PIXEL_BUFFER_END
+	bgt r2,r7,MOVE_P1_UP
 	stw r2,(r3)	
 	stw r2,4(r3)
 	br CHECK_P2_UP
+	
 MOVE_P2_UP:
 	movia r3,Player2
 	ldw r2,(r3)
 	subi r2,r2,(VGA_SIZE_NEXT_ROW * 1)
+	movia r7,PIXEL_BUFFER_START
+	blt r2,r7,MOVE_P2_DOWN
 	stw r2,4(r3)
 	stw r2,(r3)	
 	br CHECK_P2_DOWN
+	
 MOVE_P2_DOWN:
 	movia r3,Player2
 	ldw r2,(r3)
 	addi r2,r2,(VGA_SIZE_NEXT_ROW * 1)
+	movia r7,PIXEL_BUFFER_END
+	bgt r2,r7,MOVE_P1_UP
 	stw r2,(r3)
 	stw r2,4(r3)
+	
 END_INPUT:
+	mov r7,r0
 	mov r18,r0
 	mov r19,r0
 	mov r20,r0
@@ -272,6 +288,7 @@ END_INPUT:
  	ldw ra,(sp) 		/*Restore Return Adress*/
  	addi sp,sp,8
  	ret
+	
  .data 
 	Player1:
 		.skip 4 /* P1 LAST X POS */
