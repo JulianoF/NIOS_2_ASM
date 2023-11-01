@@ -132,21 +132,32 @@ DRAW_PLAYER1:
  DONE_P1:
   	mov r10,r0
  	mov r11,r0
-
  	mov r13,r0
 	
 	movui r4,0x0000
 	ldw r2,4(r3)
-
-BLACK_OLD_PX:
- 	beq r10,r12, BLACK_NEXT
+	
+	bgt r2,r6,BLACK_OLD_PX1D
+	ble r2,r6,BLACK_OLD_PX1U
+	
+BLACK_OLD_PX1D:
+ 	beq r10,r12, BLACK_END1
  	sthio r4,(r6)
  	addi r6,r6,2
  	addi r10,r10,1
- 	br BLACK_OLD_PX
-BLACK_NEXT:
-
-BLACK_END:
+ 	br BLACK_OLD_PX1D
+	
+BLACK_OLD_PX1U:
+	addi r6,r6,(VGA_SIZE_NEXT_ROW * 30)
+SUB1:
+ 	beq r10,r12, BLACK_END1
+ 	sthio r4,(r6)
+ 	addi r6,r6,2
+ 	addi r10,r10,1
+	#break
+ 	br SUB1
+	
+BLACK_END1:
 	#stw r2,(r3)
  	ldw ra,(sp)
 	addi sp,sp,4
@@ -185,7 +196,7 @@ DRAW_PLAYER2:
 	ldw r2,4(r3)
 	
 	bgt r2,r6,BLACK_OLD_PX2D
-	blt r2,r6,BLACK_OLD_PX2U
+	ble r2,r6,BLACK_OLD_PX2U
 	
 BLACK_OLD_PX2D:
  	beq r10,r12, BLACK_END2
@@ -195,11 +206,14 @@ BLACK_OLD_PX2D:
  	br BLACK_OLD_PX2D
 	
 BLACK_OLD_PX2U:
+	addi r6,r6,(VGA_SIZE_NEXT_ROW * 30)
+SUB2:
  	beq r10,r12, BLACK_END2
  	sthio r4,(r6)
- 	subi r6,r6,2
+ 	addi r6,r6,2
  	addi r10,r10,1
- 	br BLACK_OLD_PX2U
+	#break
+ 	br SUB2
 	
 BLACK_END2:
 	#stw r2,(r3)
