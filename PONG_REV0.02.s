@@ -84,11 +84,13 @@ DRAW: 															/*Drawing Subroutine to handle all drawing logic*/
  	mov r13,r0
  
 	movia r3,Player1
+	ldw r6,(r3)
  	ldw r2,4(r3) 										/*Move address into r2 the chosen test spot to start Player 1*/ 
  	call DRAW_PLAYER1
  
  
 	movia r3,Player2
+	ldw r6,(r3)
  	ldw r2,4(r3) 									/*Move address into r2 the chosen test spot to start Player 2*/
  	call DRAW_PLAYER2
  
@@ -130,8 +132,22 @@ DRAW_PLAYER1:
  DONE_P1:
   	mov r10,r0
  	mov r11,r0
-	mov r12,r0
+
  	mov r13,r0
+	
+	movui r4,0x0000
+	ldw r2,4(r3)
+
+BLACK_OLD_PX:
+ 	beq r10,r12, BLACK_NEXT
+ 	sthio r4,(r6)
+ 	addi r6,r6,2
+ 	addi r10,r10,1
+ 	br BLACK_OLD_PX
+BLACK_NEXT:
+
+BLACK_END:
+	#stw r2,(r3)
  	ldw ra,(sp)
 	addi sp,sp,4
  	ret
@@ -163,8 +179,30 @@ DRAW_PLAYER2:
  DONE_P2:
   	mov r10,r0
  	mov r11,r0
-	mov r12,r0
  	mov r13,r0
+	
+	movui r4,0x0000
+	ldw r2,4(r3)
+	
+	bgt r2,r6,BLACK_OLD_PX2D
+	blt r2,r6,BLACK_OLD_PX2U
+	
+BLACK_OLD_PX2D:
+ 	beq r10,r12, BLACK_END2
+ 	sthio r4,(r6)
+ 	addi r6,r6,2
+ 	addi r10,r10,1
+ 	br BLACK_OLD_PX2D
+	
+BLACK_OLD_PX2U:
+ 	beq r10,r12, BLACK_END2
+ 	sthio r4,(r6)
+ 	subi r6,r6,2
+ 	addi r10,r10,1
+ 	br BLACK_OLD_PX2U
+	
+BLACK_END2:
+	#stw r2,(r3)
  	ldw ra,(sp)
 	addi sp,sp,4
  	ret
@@ -212,15 +250,15 @@ BOUND_DONE:
  	ret
 ####################################################################################
 GET_INPUT:
- 	subi sp,sp,8 			/*Allocate Space for Stack Pointer*/
+ 	subi sp,sp,4 			/*Allocate Space for Stack Pointer*/
  	stw ra,(sp)
-	stw r17,4(sp)
-	ldhio r17,(r5) 	/*check is button is pressed by value loaded into r19*/
+	ldhio r17,(r5)
+	#break/*check is button is pressed by value loaded into r19*/
 	
 CHECK_P1_UP:	
-	movia r18, 0x0001
-	and r19,r18,r17
-	beq r18,r19,MOVE_P1_UP
+	movia r18, 0x0001 		/*move hex value to r18 to check against switch press */
+	and r19,r18,r17 		/* AND r17 and r18, r17 holds the values of the switches*/
+	beq r18,r19,MOVE_P1_UP /*branch if the result from AND matches out test hex value */
 	
 CHECK_P1_DOWN:	
 	movia r18, 0x0010
@@ -239,54 +277,54 @@ CHECK_P2_DOWN:
 	br END_INPUT
 	
 MOVE_P1_UP:
-	movia r3,Player1
-	ldw r2,(r3)
+	movia r3,Player1	 /*load memory address where player values are stored*/
+	ldw r2,4(r3) 		/* load current px position into r2 */
+	stw r2,(r3) 		/* store current px position as last px position in memory*/
 	subi r2,r2,(VGA_SIZE_NEXT_ROW * 1)
 	movia r7,PIXEL_BUFFER_START
 	blt r2,r7,MOVE_P1_DOWN
-	stw r2,(r3)
 	stw r2,4(r3)
 	br CHECK_P1_DOWN
 	
 MOVE_P1_DOWN:
 	movia r3,Player1
-	ldw r2,(r3)
+	ldw r2,4(r3)
+	stw r2,(r3)
 	addi r2,r2,(VGA_SIZE_NEXT_ROW * 1)
-	movia r7,PIXEL_BUFFER_END
-	bgt r2,r7,MOVE_P1_UP
-	stw r2,(r3)	
+	movia r7,(PIXEL_BUFFER_END-(VGA_SIZE_NEXT_ROW * 30))
+	bgt r2,r7,MOVE_P1_UP	
 	stw r2,4(r3)
 	br CHECK_P2_UP
 	
 MOVE_P2_UP:
 	movia r3,Player2
-	ldw r2,(r3)
+	ldw r2,4(r3)
+	stw r2,(r3)
 	subi r2,r2,(VGA_SIZE_NEXT_ROW * 1)
 	movia r7,PIXEL_BUFFER_START
 	blt r2,r7,MOVE_P2_DOWN
-	stw r2,4(r3)
-	stw r2,(r3)	
+	stw r2,4(r3)	
 	br CHECK_P2_DOWN
 	
 MOVE_P2_DOWN:
 	movia r3,Player2
-	ldw r2,(r3)
-	addi r2,r2,(VGA_SIZE_NEXT_ROW * 1)
-	movia r7,PIXEL_BUFFER_END
-	bgt r2,r7,MOVE_P1_UP
+	ldw r2,4(r3)
 	stw r2,(r3)
+	addi r2,r2,(VGA_SIZE_NEXT_ROW * 1)
+	movia r7, (PIXEL_BUFFER_END-(VGA_SIZE_NEXT_ROW * 30))
+	bgt r2,r7,MOVE_P2_UP
 	stw r2,4(r3)
 	
 END_INPUT:
 	mov r7,r0
+	mov r17,r0
 	mov r18,r0
 	mov r19,r0
 	mov r20,r0
 	mov r21,r0
 	mov r22,r0
-	ldw r17,4(sp)
  	ldw ra,(sp) 		/*Restore Return Adress*/
- 	addi sp,sp,8
+ 	addi sp,sp,4
  	ret
 	
  .data 
