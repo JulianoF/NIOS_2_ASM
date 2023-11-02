@@ -68,45 +68,80 @@ END_PAINT_FULL_VGA:
 	stw r3,(r2)  		/* MAKE CURRENT AND LAST POS SAME ON INIT*/
 	stw r3,4(r2)
 	
+	movia r2,Ball_Cords /*code here to start ball POS*/
+	movia r3, (PIXEL_BUFFER_START+0x100+(VGA_SIZE_NEXT_ROW*10))
+	stw r3,(r2)  		/* MAKE CURRENT AND LAST POS SAME ON INIT*/
+	stw r3,4(r2)
+	stw r0,8(r2) /*No velocity yet*/
+	stw r0,12(r2)
+	
 ##############################################################################
 GAMELOOP: 							/*MAIN GAME LOOP*/
+
 	call GET_INPUT
+	#call BALL_PHYS
+	
+	movia r14,2000
+WAIT_LOOP:
+	nop
+	nop
+	nop
+	nop
+	nop
+	addi r15,r15,1
+	bne r15,r14,WAIT_LOOP
+	mov r14,r0
+	mov r15,r0
+	
  	call DRAW						/*Call the draw subroutine*/
  	jmpi GAMELOOP					/*Jump back to label GAMELOOP infinitly*/
 ##############################################################################	
-DRAW: 															/*Drawing Subroutine to handle all drawing logic*/
- 	subi sp,sp,4 														/*Reserve 4 bytes on the stack*/
- 	stw ra,(sp) 														/*Store the current return Address on the stack*/
+DRAW: 												/*Drawing Subroutine to handle all drawing logic*/
+ 	subi sp,sp,4 									/*Reserve 4 bytes on the stack*/
+ 	stw ra,(sp) 									/*Store the current return Address on the stack*/
 
- 	mov r10,r0  														/*Ensure some registers are zerod for use in Drawing functions*/
+ 	mov r10,r0  									/*Ensure some registers are zerod for use in Drawing functions*/
  	mov r11,r0
  	mov r12,r0
  	mov r13,r0
  
 	movia r3,Player1
+	movui r4,0xff00  /*Move pixel value into r4*/
 	ldw r6,(r3)
- 	ldw r2,4(r3) 										/*Move address into r2 the chosen test spot to start Player 1*/ 
- 	call DRAW_PLAYER1
+ 	ldw r2,4(r3) 							/*Move address into r2 the chosen test spot to start Player 1*/ 
+ 	call DRAW_PLAYER
  
  
 	movia r3,Player2
+	movui r4,0xf0ff
 	ldw r6,(r3)
- 	ldw r2,4(r3) 									/*Move address into r2 the chosen test spot to start Player 2*/
- 	call DRAW_PLAYER2
+ 	ldw r2,4(r3) 							/*Move address into r2 the chosen test spot to start Player 2*/
+ 	call DRAW_PLAYER
  
- 	#call DRAW_BALL
+ 	movia r3,Ball_Cords
+  	movui r4,0xffff 
+	ldw r6,(r3)
+ 	ldw r2,4(r3)
+	ldw r7,8(r3)
+	ldw r8,12(r3)
+ 	call DRAW_BALL
+	
  	#call DRAW_SCORE
  
- 	ldw ra,(sp) 		 												/*Restore return address to return to GAMELOOP*/
- 	addi sp,sp,4		 												/*Update Stack Pointer*/
+ 	ldw ra,(sp) 		 									/*Restore return address to return to GAMELOOP*/
+ 	addi sp,sp,4		 									/*Update Stack Pointer*/
  	ret
 ##############################################################################
-DRAW_SCORE: /*Not implemented*/
- 	movui r4,0xffff 
- 	ret
+BALL_PHYS:
+ 	subi sp,sp,4   /*Set up stack*/
+ 	stw ra,(sp)
+	
+	ldw ra,(sp) 		 							/*Restore return address to return to GAMELOOP*/
+ 	addi sp,sp,4		 							/*Update Stack Pointer*/
+	ret
 ##############################################################################
-DRAW_PLAYER1:
- 	movui r4,0xff00  /*Move pixel value into r4*/
+DRAW_PLAYER:
+
  	subi sp,sp,4   /*Set up stack*/
  	stw ra,(sp)
  
@@ -115,21 +150,21 @@ DRAW_PLAYER1:
  	movia r12,4  /*Player Pixel Draw Width */
  	movia r13,30 /*Player Pixel Draw Height */
  
- D_P1_ROW:
- 	beq r10,r12, D_P1_NEXTROW /*loop control to move to next row*/
+ D_P_ROW:
+ 	beq r10,r12, D_P_NEXTROW /*loop control to move to next row*/
  	sthio r4,(r2) /*store pixel color value into pixel memory region */
  	addi r2,r2,2 /*move two bytes over on current memory address*/
  	addi r10,r10,1 
- 	br D_P1_ROW
+ 	br D_P_ROW
 	
- D_P1_NEXTROW:
+ D_P_NEXTROW:
  	addi r2,r2, 1016 /*add the offset in memory to start drawing on next row */
 	mov r10,r0
 	addi r11,r11,1
-	bne r11,r13,D_P1_ROW
-	br DONE_P1
+	bne r11,r13,D_P_ROW
+	br DONE_P
 	
- DONE_P1:
+ DONE_P:
   	mov r10,r0
  	mov r11,r0
  	mov r13,r0
@@ -137,91 +172,61 @@ DRAW_PLAYER1:
 	movui r4,0x0000
 	ldw r2,4(r3)
 	
-	bgt r2,r6,BLACK_OLD_PX1D
-	ble r2,r6,BLACK_OLD_PX1U
+	bgt r2,r6,BLACK_OLD_PXD
+	ble r2,r6,BLACK_OLD_PXU
 	
-BLACK_OLD_PX1D:
- 	beq r10,r12, BLACK_END1
+BLACK_OLD_PXD:
+ 	beq r10,r12, BLACK_END
  	sthio r4,(r6)
  	addi r6,r6,2
  	addi r10,r10,1
- 	br BLACK_OLD_PX1D
+ 	br BLACK_OLD_PXD
 	
-BLACK_OLD_PX1U:
+BLACK_OLD_PXU:
 	addi r6,r6,(VGA_SIZE_NEXT_ROW * 30)
 SUB1:
- 	beq r10,r12, BLACK_END1
+ 	beq r10,r12, BLACK_END
  	sthio r4,(r6)
  	addi r6,r6,2
  	addi r10,r10,1
-	#break
  	br SUB1
 	
-BLACK_END1:
-	#stw r2,(r3)
+BLACK_END:
  	ldw ra,(sp)
 	addi sp,sp,4
  	ret
 #########################################################################################
-DRAW_PLAYER2:
- 	movui r4,0xf0ff
- 	subi sp,sp,4
- 	stw ra,(sp)
-
- 	mov r10,r0
- 	mov r11,r0
- 	movia r12,4  /*Player Pixel Draw Width */
- 	movia r13,30 /*Player Pixel Draw Height */
- 
- D_P2_ROW:
- 	beq r10,r12, D_P2_NEXTROW
- 	sthio r4,(r2)
- 	addi r2,r2,2
- 	addi r10,r10,1
- 	br D_P2_ROW
+DRAW_BALL: /*Not implemented*/
+	subi sp,sp,4 			/*Allocate Space for Stack Pointer*/
+ 	stw ra,(sp)  			/*Store Return Address on Stack */
 	
- D_P2_NEXTROW:
- 	addi r2,r2, 1016
+	mov r10,r0  	/*Clear r10 and r11 for loop use*/
+ 	mov r11,r0
+ 	movia r12,6  	/*Ball Pixel Draw Width */
+ 	movia r13,6 	/*Ball Pixel Draw Height */
+ BALL_ROW:
+ 	beq r10,r12, BALL_NEXTROW /*loop control to move to next row*/
+ 	sthio r4,(r2) /*store pixel color value into pixel memory region */
+ 	addi r2,r2,2 /*move two bytes over on current memory address*/
+ 	addi r10,r10,1 
+ 	br BALL_ROW
+	
+ BALL_NEXTROW:
+ 	addi r2,r2,VGA_SIZE_NEXT_ROW-12  /*add the offset in memory to start drawing on next row */
 	mov r10,r0
 	addi r11,r11,1
-	bne r11,r13,D_P2_ROW
-	br DONE_P2
+	bne r11,r13,BALL_ROW
+	br DONE_BALL
 	
- DONE_P2:
+ DONE_BALL:
   	mov r10,r0
  	mov r11,r0
- 	mov r13,r0
-	
-	movui r4,0x0000
-	ldw r2,4(r3)
-	
-	bgt r2,r6,BLACK_OLD_PX2D
-	ble r2,r6,BLACK_OLD_PX2U
-	
-BLACK_OLD_PX2D:
- 	beq r10,r12, BLACK_END2
- 	sthio r4,(r6)
- 	addi r6,r6,2
- 	addi r10,r10,1
- 	br BLACK_OLD_PX2D
-	
-BLACK_OLD_PX2U:
-	addi r6,r6,(VGA_SIZE_NEXT_ROW * 30)
-SUB2:
- 	beq r10,r12, BLACK_END2
- 	sthio r4,(r6)
- 	addi r6,r6,2
- 	addi r10,r10,1
-	#break
- 	br SUB2
-	
-BLACK_END2:
-	#stw r2,(r3)
- 	ldw ra,(sp)
-	addi sp,sp,4
+ 	mov r13,r0	
+ 	ldw ra,(sp) 		/*Restore Return Adress*/
+ 	addi sp,sp,4	
  	ret
 #######################################################################################
-DRAW_BALL: /*Not implemented*/
+DRAW_SCORE: /*Not implemented*/
  	movui r4,0xffff 
  	ret
 #######################################################################################
@@ -340,14 +345,19 @@ END_INPUT:
  	ldw ra,(sp) 		/*Restore Return Adress*/
  	addi sp,sp,4
  	ret
-	
+#########################################################################	
  .data 
 	Player1:
 		.skip 4 /* P1 LAST X POS */
 		.skip 4 /* P1 CURRENT X POS */
 	Player2:
-		.skip 4 /* P1 LAST X POS */
-		.skip 4 /* P1 CURRENT X POS */
+		.skip 4 /* P2 LAST X POS */
+		.skip 4 /* P2 Current X POS */
+	Ball_Cords:
+		.skip 4 /* Ball LAST X POS */
+		.skip 4 /* Ball Current X POS */
+		.skip 4 /* Ball X velocity*/
+		.skip 4 /* Ball Y velocity*/
 	Score:
 		.skip 4 /* P1 Score */
 		.skip 4 /* P2 Score */
